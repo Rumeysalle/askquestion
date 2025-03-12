@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "864230489603",
+    "project_id": "askquestion-636dd",
+    "storage_bucket": "askquestion-636dd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:864230489603:android:88bcde4f8afc3f93c15836",
+        "android_client_info": {
+          "package_name": "com.turkey.askquestion"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBnwiBpyUH7KEdIGM2QB1AAzMDd0j3g87I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
