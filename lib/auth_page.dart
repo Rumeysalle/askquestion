@@ -2,7 +2,6 @@ import 'package:askquestion/home_page.dart';
 import 'package:askquestion/register_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthPage extends StatefulWidget {
   @override
@@ -51,17 +50,7 @@ class _AuthPageState extends State<AuthPage> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF0014A8),
-              Color(0xFF1920A0),
-              Color(0xFF4000a8),
-            ], // Gradient arka plan
-          ),
-        ),
+        color: Color(0xFFE3E8FF), // Arka plan rengi
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
@@ -72,23 +61,25 @@ class _AuthPageState extends State<AuthPage> {
                 decoration: InputDecoration(
                   labelText: "Email",
                   labelStyle: TextStyle(
-                      color: Colors.white.withOpacity(0.5)), // Opaklık eklendi
+                      fontFamily: 'Montserrat',
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF1E1919)
+                          .withOpacity(0.5)), // Opaklık eklendi
                   enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(
-                        color: Color(0xFFA5BCEF)
+                        color: Color(0xFFA49B93)
                             .withOpacity(0.7)), // Opaklık eklendi
                     borderRadius: BorderRadius.circular(10),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(
-                        color: const Color(0xFFE7E7E7)
+                        color: const Color(0xFFA49B93)
                             .withOpacity(0.7)), // Opaklık eklendi
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-
                 style: TextStyle(
-                    color: const Color(0xFFE7E7E7)
+                    color: const Color(0xFF1E1919)
                         .withOpacity(0.7)), // Opaklık eklendi
               ),
               SizedBox(height: 20),
@@ -98,33 +89,33 @@ class _AuthPageState extends State<AuthPage> {
                 decoration: InputDecoration(
                   labelText: "Şifre",
                   labelStyle: TextStyle(
-                      color: const Color(0xFFE7E7E7)
+                      fontFamily: 'Montserrat',
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF1E1919)
                           .withOpacity(0.5)), // Opaklık eklendi
                   enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(
-                        color: Color(0xFFA5BCEF)
+                        color: Color(0xFFA49B93)
                             .withOpacity(0.7)), // Opaklık eklendi
                     borderRadius: BorderRadius.circular(10),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(
-                        color: const Color(0xFFE7E7E7)
+                        color: const Color(0xFFA49B93)
                             .withOpacity(0.7)), // Opaklık eklendi
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-
                 style: TextStyle(
-                    color: const Color(0xFFE7E7E7)
-                        .withOpacity(0.5)), // Opaklık eklendi
+                    color: const Color(0xFF1E1919)
+                        .withOpacity(0.7)), // Opaklık eklendi
               ),
-              SizedBox(height: 20),
-              SizedBox(height: 20),
+              SizedBox(height: 50),
               ElevatedButton(
                 onPressed: signIn,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFA5BCEF),
-                  padding: EdgeInsets.symmetric(vertical: 10, horizontal: 100),
+                  backgroundColor: const Color(0xFF1E1919), // Buton rengi
+                  padding: EdgeInsets.symmetric(vertical: 15, horizontal: 100),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(5),
                   ),
@@ -132,9 +123,12 @@ class _AuthPageState extends State<AuthPage> {
                 child: Text(
                   "Giriş Yap",
                   style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black),
+                    fontFamily: 'Montserrat',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: const Color(0xFFE3E8FF), // Yazı rengi
+                    letterSpacing: 1.0, // Harfler arasındaki boşluk artırıldı
+                  ),
                 ),
               ),
               SizedBox(height: 20),
@@ -147,6 +141,38 @@ class _AuthPageState extends State<AuthPage> {
                   ),
                 ),
               SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: Divider(
+                      color: Color(0xFF1E1919).withOpacity(0.3), // Çizgi rengi
+                      thickness: 1,
+                      indent: 10,
+                      endIndent: 10, // Ortada boşluk için
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: 8), // Yazı ile çizgi arasındaki boşluk
+                    child: Text(
+                      'veya', // Ortaya yazılacak metin
+                      style: TextStyle(
+                          fontFamily: 'Montserrat',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w300),
+                    ),
+                  ),
+                  Expanded(
+                    child: Divider(
+                      color: Color(0xFF1E1919).withOpacity(0.3), // Çizgi rengi
+                      thickness: 1,
+                      indent: 10,
+                      endIndent: 10, // Ortada boşluk için
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 20),
               GestureDetector(
                 onTap: () {
                   Navigator.push(
@@ -157,7 +183,10 @@ class _AuthPageState extends State<AuthPage> {
                 child: Text(
                   "Hesabın yok mu? Kayıt Ol",
                   style: TextStyle(
-                    color: Colors.white,
+                    fontFamily: 'Montserrat',
+                    fontStyle: FontStyle.italic,
+                    fontWeight: FontWeight.w300,
+                    color: const Color(0xFF1E1919).withOpacity(0.5),
                     fontSize: 16,
                     decoration: TextDecoration.underline,
                   ),
