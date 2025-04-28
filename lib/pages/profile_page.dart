@@ -1,84 +1,177 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:askquestion/widgets/post_card.dart';
 
-class ProfilePage extends StatefulWidget {
-  @override
-  _ProfilePageState createState() => _ProfilePageState();
-}
+class ProfilePage extends StatelessWidget {
+  final String uid;
 
-class _ProfilePageState extends State<ProfilePage> {
-  // Kullanıcının kimliğini almak için FirebaseAuth'ı kullanıyoruz.
-  final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
-
-  late Future<Map<String, dynamic>> userData;
-
-  @override
-  void initState() {
-    super.initState();
-    userData =
-        getUserData(); // Kullanıcı verilerini almak için fonksiyon çağırıyoruz.
-  }
-
-  // Firestore'dan kullanıcı verilerini çeken fonksiyon
-  Future<Map<String, dynamic>> getUserData() async {
-    DocumentSnapshot snapshot = await FirebaseFirestore.instance
-        .collection(
-            'users') // 'users' koleksiyonundaki kullanıcı verilerini çekiyoruz
-        .doc(
-            currentUserId) // Şu anki kullanıcının 'uid' bilgisine göre sorgulama yapıyoruz
-        .get();
-
-    // Veriyi bir map'e çeviriyoruz
-    return snapshot.data() as Map<String, dynamic>;
-  }
+  const ProfilePage({required this.uid});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Profil')),
-      body: FutureBuilder<Map<String, dynamic>>(
-        // Kullanıcı verisi çekildiğinde gösterilecek widget
-        future: userData,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(
-                child:
-                    CircularProgressIndicator()); // Veriler yüklenirken gösterilen loading animasyonu
-          } else if (snapshot.hasError) {
-            return Center(
-                child: Text('Bir hata oluştu!')); // Hata durumunda mesaj
-          } else if (!snapshot.hasData) {
-            return Center(child: Text('Kullanıcı verisi bulunamadı!'));
-          } else {
-            // Veriyi aldıktan sonra sayfa içeriğini oluşturuyoruz
-            final user = snapshot.data!;
-            return Padding(
-              padding: EdgeInsets.all(16),
+    return FutureBuilder<DocumentSnapshot>(
+      future: FirebaseFirestore.instance.collection('users').doc(uid).get(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || !snapshot.data!.exists) {
+          return Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+
+        final data = snapshot.data!.data() as Map<String, dynamic>;
+
+        String bioname = data['bio'] ?? '';
+        String username = data['username'] ?? '';
+        String photoURL = data['photoURL'] ?? 'https://i.pravatar.cc/300';
+        String joinDate = (data['createdAt'] as Timestamp?)
+                ?.toDate()
+                .toString()
+                .substring(0, 10) ??
+            '';
+
+        return Scaffold(
+          appBar: AppBar(
+            toolbarHeight: 48,
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.black,
+            elevation: 0,
+            leading: BackButton(color: Colors.black),
+          ),
+          backgroundColor: Colors.white,
+          body: SingleChildScrollView(
+            padding:
+                EdgeInsets.zero, // ✅ SafeArea kaldırıldı, padding sıfırlandı
+            physics: AlwaysScrollableScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0, vertical: 0), // ✅ sadece yatay padding
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Profil bilgilerini gösteren alanlar
-                  Text(
-                    'Kullanıcı Adı: ${user['username']}',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  // Profil header
+                  SizedBox(height: 12), // küçük bir boşluk
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CircleAvatar(
+                        radius: 40,
+                        backgroundImage: NetworkImage(photoURL),
+                      ),
+                      SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '@$username',
+                              style: TextStyle(
+                                fontFamily: 'Montserrat',
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              bioname,
+                              style: TextStyle(
+                                fontFamily: 'Montserrat',
+                                fontSize: 16,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Icon(Icons.calendar_today,
+                                    size: 14, color: Colors.grey),
+                                SizedBox(width: 4),
+                                Text(
+                                  "Joined $joinDate",
+                                  style: TextStyle(
+                                    fontFamily: 'Montserrat',
+                                    fontSize: 13,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 8),
-                  Text(
-                    'E-posta: ${user['email']}',
-                    style: TextStyle(fontSize: 16),
+
+                  SizedBox(height: 12),
+
+                  // 3 ikonlu buton satırı
+                  Row(
+                    children: [
+                      Expanded(
+                        child: IconButton(
+                          onPressed: () {},
+                          icon:
+                              Image.asset('assets/icons/chats.png', height: 32),
+                        ),
+                      ),
+                      Expanded(
+                        child: IconButton(
+                          onPressed: () {},
+                          icon:
+                              Image.asset('assets/icons/team.png', height: 32),
+                        ),
+                      ),
+                      Expanded(
+                        child: IconButton(
+                          onPressed: () {},
+                          icon:
+                              Image.asset('assets/icons/edit.png', height: 32),
+                        ),
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Hesap Oluşturulma Tarihi: ${user['createdAt'].toDate().toString()}',
-                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  Divider(),
+
+                  // Gönderiler
+                  StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('posts')
+                        .where('userId', isEqualTo: uid)
+                        .orderBy('createdAt', descending: true)
+                        .snapshots(),
+                    builder: (context, postSnapshot) {
+                      if (!postSnapshot.hasData) {
+                        return Center(child: CircularProgressIndicator());
+                      }
+
+                      final posts = postSnapshot.data!.docs;
+
+                      if (posts.isEmpty) {
+                        return Center(child: Text("Henüz hiç paylaşım yok."));
+                      }
+
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: posts.length,
+                        itemBuilder: (context, index) {
+                          final postData =
+                              posts[index].data() as Map<String, dynamic>;
+                          final postRef = posts[index].reference;
+
+                          return PostCard(
+                            postData: postData,
+                            postRef: postRef,
+                            username: username,
+                            userPhoto: photoURL,
+                          );
+                        },
+                      );
+                    },
                   ),
                 ],
               ),
-            );
-          }
-        },
-      ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

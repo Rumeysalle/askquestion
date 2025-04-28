@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 class AddPostScreen extends StatefulWidget {
   @override
@@ -10,70 +10,85 @@ class AddPostScreen extends StatefulWidget {
 class _AddPostScreenState extends State<AddPostScreen> {
   final TextEditingController _postController = TextEditingController();
   final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
+  bool _isLoading = false;
 
   void _sharePost() async {
     String content = _postController.text.trim();
     if (content.isEmpty) return;
 
-    // 1. Gönderildi mesajı göster
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Gönderin başarıyla paylaşıldı")),
-    );
-
-    // 2. Firestore'a kaydet
-    await FirebaseFirestore.instance.collection('posts').add({
-      'content': content,
-      'userId': currentUserId,
-      'timestamp': FieldValue.serverTimestamp(),
-      'likes': [],
+    setState(() {
+      _isLoading = true;
     });
 
-    // 3. Sayfayı kapat
-    Navigator.pop(context);
+    try {
+      await FirebaseFirestore.instance.collection('posts').add({
+        'content': content,
+        'userId': currentUserId,
+        'createdAt': FieldValue.serverTimestamp(),
+        'likes': [],
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gönderi başarıyla paylaşıldı!')),
+      );
+
+      Navigator.pop(context); // Geri dön
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Bir hata oluştu: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(16),
-      height: 500,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Yeni Gönderi'),
+        backgroundColor: Colors.blue,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Üst kısım (İptal - Paylaş)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text("İptal", style: TextStyle(color: Colors.red)),
-              ),
-              ElevatedButton(
-                onPressed: _sharePost,
-                child: Text("Paylaş"),
-              ),
-            ],
-          ),
-          SizedBox(height: 10),
-          // Opaklık seviyesi düşük yazı
-
-          SizedBox(height: 10),
-          // Kullanıcının yazı girdiği alan
-          Expanded(
-            child: TextField(
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            TextField(
               controller: _postController,
-              maxLines: null,
+              maxLines: 6,
               decoration: InputDecoration(
-                border: InputBorder.none,
-                hintText: "Bir düşünceni paylaş...",
+                hintText: 'Düşüncelerini paylaş...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
-          ),
-        ],
+            SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _isLoading ? null : _sharePost,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                padding: EdgeInsets.symmetric(vertical: 16, horizontal: 40),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: Icon(Icons.send),
+              label: _isLoading
+                  ? SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text('Paylaş'),
+            ),
+          ],
+        ),
       ),
     );
   }

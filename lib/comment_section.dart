@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 class CommentSection extends StatefulWidget {
   final String postId;
@@ -16,15 +16,16 @@ class _CommentSectionState extends State<CommentSection> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   void _addComment() async {
-    if (_commentController.text.trim().isEmpty) return;
+    final text = _commentController.text.trim();
+    if (text.isEmpty) return;
 
     final currentUser = _auth.currentUser;
     if (currentUser == null) return;
 
     final commentData = {
       'userId': currentUser.uid,
-      'text': _commentController.text.trim(),
-      'createdAt': Timestamp.now(),
+      'text': text,
+      'createdAt': FieldValue.serverTimestamp(),
     };
 
     await FirebaseFirestore.instance
@@ -34,12 +35,13 @@ class _CommentSectionState extends State<CommentSection> {
         .add(commentData);
 
     _commentController.clear();
+    FocusScope.of(context).unfocus(); // Klavyeyi kapat
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 400,
+      height: 450,
       padding: EdgeInsets.all(10),
       child: Column(
         children: [
@@ -58,6 +60,10 @@ class _CommentSectionState extends State<CommentSection> {
 
                 var comments = snapshot.data!.docs;
 
+                if (comments.isEmpty) {
+                  return Center(child: Text("Henüz yorum yok."));
+                }
+
                 return ListView.builder(
                   itemCount: comments.length,
                   itemBuilder: (context, index) {
@@ -73,13 +79,18 @@ class _CommentSectionState extends State<CommentSection> {
                         if (!userSnapshot.hasData ||
                             !userSnapshot.data!.exists) {
                           return ListTile(
-                              title: Text("Anonim Kullanıcı"),
-                              subtitle: Text(comment['text']));
+                            leading: CircleAvatar(
+                              backgroundImage:
+                                  AssetImage('assets/default_profile.png'),
+                            ),
+                            title: Text("Anonim Kullanıcı"),
+                            subtitle: Text(comment['text'] ?? ''),
+                          );
                         }
 
                         var userData = userSnapshot.data!;
-                        String username = userData['username'];
-                        String? photoUrl = userData['photoUrl'];
+                        String username = userData['username'] ?? "Bilinmeyen";
+                        String? photoUrl = userData['photoURL'];
 
                         return ListTile(
                           leading: CircleAvatar(
@@ -89,7 +100,7 @@ class _CommentSectionState extends State<CommentSection> {
                                     as ImageProvider,
                           ),
                           title: Text(username),
-                          subtitle: Text(comment['text']),
+                          subtitle: Text(comment['text'] ?? ''),
                         );
                       },
                     );
@@ -98,7 +109,7 @@ class _CommentSectionState extends State<CommentSection> {
               },
             ),
           ),
-          Divider(),
+          Divider(thickness: 1),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: Row(
@@ -107,11 +118,17 @@ class _CommentSectionState extends State<CommentSection> {
                   child: TextField(
                     controller: _commentController,
                     decoration: InputDecoration(
-                      hintText: "Yorum ekleyin...",
-                      border: InputBorder.none,
+                      hintText: "Bir yorum yazın...",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey),
+                      ),
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     ),
                   ),
                 ),
+                SizedBox(width: 8),
                 IconButton(
                   icon: Icon(Icons.send, color: Colors.blue),
                   onPressed: _addComment,

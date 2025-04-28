@@ -73,6 +73,16 @@ flutter:
     - assets/fonts/Montserrat-MediumItalic.ttf
     - assets/icons/check.png
     - assets/icons/checked.png
+    - assets/icons/edit.png
+    - assets/icons/chats.png
+    - assets/icons/calendar.png
+    - assets/icons/team.png
+    - assets/icons/user.png
+    - assets/icons/home.png
+    - assets/icons/people.png
+    - assets/icons/search.png
+    - assets/icons/navigaiton.png
+    
 
   fonts:
     - family: Montserrat

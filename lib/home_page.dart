@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:askquestion/pages/addposts_page.dart';
 import 'package:askquestion/pages/chat_page.dart';
@@ -11,79 +12,54 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _selectedIndex = 0; // Seçili sayfa indeksi
+  int _selectedIndex = 0;
 
-  // Sayfaları liste olarak tanımlıyoruz
   final List<Widget> _pages = [
-    BlogPage(), // Ana Sayfa (Bloglar)
-    ChatPage(), // Mesajlaşma (AI Chatbox)
-    GroupsPage(), // Gruplar (Topluluklar)
-    ProfilePage(),
-    AddPostScreen(), // Profil
+    BlogPage(),
+    GroupsPage(),
+    ChatPage(),
+    ProfilePage(uid: FirebaseAuth.instance.currentUser!.uid),
   ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_selectedIndex], // Seçili sayfayı göster
-
-      // Ortada mavi + butonu
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Paylaşım yapma sayfasına git
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => AddPostScreen()),
-          );
-        },
-        child: Icon(Icons.add, color: Colors.white),
-        backgroundColor: Colors.blue, // Buton rengi
-      ),
-      floatingActionButtonLocation:
-          FloatingActionButtonLocation.centerDocked, // Buton ortada
-
-      // Alt kısımda navigation bar yok
+      body: _pages[_selectedIndex],
       bottomNavigationBar: BottomAppBar(
-        color: const Color.fromARGB(27, 60, 87, 93),
+        color: Color(0xFF454679), // Zemin rengi
+        shape: CircularNotchedRectangle(),
+        notchMargin: 8,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            IconButton(
-              icon: Icon(Icons.home, color: Colors.white),
-              onPressed: () {
-                setState(() {
-                  _selectedIndex = 0;
-                });
-              },
-            ),
-            IconButton(
-              icon: Icon(Icons.chat, color: Colors.white),
-              onPressed: () {
-                setState(() {
-                  _selectedIndex = 1;
-                });
-              },
-            ),
-            // Diğer butonlar (Boş bırakılacak, çünkü + butonu ortada olacak)
-            SizedBox(width: 48), // Butonlar arasında boşluk bırakmak için
-            IconButton(
-              icon: Icon(Icons.groups, color: Colors.white),
-              onPressed: () {
-                setState(() {
-                  _selectedIndex = 2;
-                });
-              },
-            ),
-            IconButton(
-              icon: Icon(Icons.person, color: Colors.white),
-              onPressed: () {
-                setState(() {
-                  _selectedIndex = 3;
-                });
-              },
-            ),
+            _buildNavItem(0, 'assets/icons/home.png'),
+            _buildNavItem(1, 'assets/icons/chats.png'),
+            _buildNavItem(2, 'assets/icons/people.png'),
+            _buildNavItem(3, 'assets/icons/user.png'),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, String iconPath) {
+    bool isSelected = _selectedIndex == index;
+
+    return IconButton(
+      onPressed: () => _onItemTapped(index),
+      icon: Image.asset(
+        iconPath,
+        height: 28,
+        fit: BoxFit.contain,
+        color: isSelected
+            ? const Color(0xFF7B7B7B)
+            : const Color(0xFFF8F8F8), // Seçili ve seçilmemiş renkler
       ),
     );
   }
