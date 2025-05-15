@@ -1,5 +1,4 @@
-// 📁 components/PostItem.tsx
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { auth, db } from "../../lib/firebase";
 import {
     doc,
@@ -51,7 +50,7 @@ export default function PostItem({ post }: { post: any }) {
     };
 
     return (
-        <div className="border-b border-gray-300 py-6 px-4 hover:bg-[#F9FAFB] transition-all duration-200 relative">
+        <div className="p-4 hover:bg-gray-50 transition-all duration-200 relative border-b border-gray-200">
             <Link href={`/profile/${post.uid}`}>
                 <div
                     className="flex items-center gap-2 mb-2 cursor-pointer"
@@ -59,11 +58,18 @@ export default function PostItem({ post }: { post: any }) {
                     onMouseLeave={() => setHovered(false)}
                 >
                     <img
-                        src={post.photoURL || "https://i.pravatar.cc/300"}
+                        src={post.photoURL || "https://i.ibb.co/wh9SNVZY/user.png"}
                         alt="profile"
-                        className="w-9 h-9 rounded-full"
+                        className="w-10 h-10 rounded-full"
                     />
-                    <p className="font-semibold text-sm">{post.username || "Kullanıcı"}</p>
+                    <div>
+                        <p className="font-bold text-sm text-gray-900">
+                            {post.username || "Kullanıcı"}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                            @{post.email?.split("@")[0]}
+                        </p>
+                    </div>
                 </div>
             </Link>
 
@@ -75,46 +81,52 @@ export default function PostItem({ post }: { post: any }) {
 
             <p className="text-gray-900 text-[15px] mb-2 leading-6">{post.content}</p>
 
-            <div className="flex gap-8 text-lg items-center mt-3 text-gray-500">
-                <button
-                    onClick={() => setShowModal(true)}
-                    className="hover:text-green-600 flex items-center gap-1 transition"
-                >
-                    <MessageCircle size={18} />
-                    <span className="text-sm">Yorum</span>
+            <div className="flex items-center justify-between gap-4 text-sm text-gray-500 mt-3">
+                {/* Sol: Paylaş */}
+                <button className="hover:text-blue-500 transition flex items-center gap-1">
+                    <Share2 size={16} />
+                    <span>Paylaş</span>
                 </button>
 
+                {/* Ortada: Yorum */}
+                <button
+                    onClick={() => setShowModal(true)}
+                    className="hover:text-green-600 transition flex items-center gap-1"
+                >
+                    <MessageCircle size={16} />
+                    <span>Yorum</span>
+                </button>
+
+                {/* Beğeni */}
                 <button
                     onClick={handleLike}
                     className={`flex items-center gap-1 hover:text-red-600 transition`}
                 >
                     <Heart
-                        size={18}
-                        className={`${hasLiked ? "text-red-600 fill-red-600" : "text-gray-500"}`}
+                        size={16}
+                        className={`${hasLiked ? "text-red-600 fill-red-600" : "text-gray-500"
+                            }`}
                     />
-                    <span className="text-sm">{post.like?.count || 0}</span>
+                    <span>{post.like?.count || 0}</span>
                 </button>
 
+                {/* Kaydet */}
                 <button
                     onClick={handleSavePost}
                     className="hover:text-green-700 flex items-center gap-1 transition"
                 >
                     {saved ? (
-                        <BookmarkCheck size={18} className="text-blue-600 fill-blue-600" />
+                        <BookmarkCheck size={16} className="text-blue-600 fill-blue-600" />
                     ) : (
-                        <Bookmark size={18} />
+                        <Bookmark size={16} />
                     )}
-
-                    <span className="text-sm">Kaydet</span>
-                </button>
-
-                <button className="hover:text-blue-500 flex items-center gap-1 transition">
-                    <Share2 size={18} />
-                    <span className="text-sm">Paylaş</span>
+                    <span>Kaydet</span>
                 </button>
             </div>
 
-            {showModal && <CommentModal postId={post.id} onClose={() => setShowModal(false)} />}
+            {showModal && (
+                <CommentModal postId={post.id} onClose={() => setShowModal(false)} />
+            )}
         </div>
     );
 }

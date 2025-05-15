@@ -1,93 +1,128 @@
-import { useEffect, useState } from "react";
+'use client';
+
+import Link from "next/link";
 import { useRouter } from "next/router";
-import { auth, db } from "../../lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { Home, MessageCircle, Users, Settings, PencilLine } from "lucide-react";
+import {
+    Home,
+    MessageCircle,
+    Users,
+    User,
+    Settings,
+    Pencil,
+    MoreHorizontal,
+    LogOut,
+} from "lucide-react";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth } from "../../lib/firebase";
+import { signOut } from "firebase/auth";
+import LoadingSpinner from "./LoadingSpinner";
+import { useState } from "react";
+import PostModal from "./PostModal";
 
 export default function Sidebar() {
+    const [user, loading] = useAuthState(auth);
     const router = useRouter();
-    const [user, setUser] = useState<any>(null);
-    const [userData, setUserData] = useState<any>(null);
-
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-            if (firebaseUser) {
-                setUser(firebaseUser);
-
-                // Firestore'dan kullanıcı verilerini çek
-                const docRef = doc(db, "users", firebaseUser.uid);
-                const docSnap = await getDoc(docRef);
-
-                if (docSnap.exists()) {
-                    setUserData(docSnap.data());
-                }
-            }
-        });
-
-        return () => unsubscribe();
-    }, []);
+    const [showPostModal, setShowPostModal] = useState(false);
 
     const handleLogout = async () => {
         await signOut(auth);
         router.push("/login");
     };
 
-    const menuItems = [
-        { label: "Home", path: "/", icon: <Home size={20} /> },
-        { label: "Messages", path: "/messages", icon: <MessageCircle size={20} /> },
-        { label: "Groups", path: "/groups", icon: <Users size={20} /> },
-        { label: "Profile", path: "/profile", icon: <PencilLine size={20} /> },
-        { label: "Settings", path: "/settings", icon: <Settings size={20} /> },
-    ];
+    if (loading) {
+        return (
+            <div className="w-full min-h-screen bg-[#0A1231] text-white flex items-center justify-center">
+                <LoadingSpinner />
+            </div>
+        );
+    }
 
     return (
-        <div className="h-screen w-60 bg-[#0A1231] text-white flex flex-col justify-between fixed top-0 left-0 p-6 shadow-lg">
-            <div>
-                {/* Üst Profil Bilgisi */}
-                <div className="flex items-center gap-3 mb-8">
-                    <img
-                        src={userData?.photoURL || "https://i.pravatar.cc/300"}
-                        alt="avatar"
-                        className="w-10 h-10 rounded-full"
-                    />
-                    <div>
-                        <p className="font-bold text-white">{userData?.username || "Kullanıcı"}</p>
-                        <p className="text-sm text-gray-400">{user?.email}</p>
+        <div className="w-full min-h-screen bg-[#0A1231] text-white flex flex-col justify-between px-4 py-6">
+            {/* Üst Kısım: Logo ve Menü */}
+            <div className="space-y-4">
+                <h1 className="text-white text-2xl font-bold mb-4">AskQ</h1>
+
+                <Link href="/">
+                    <div className="flex items-center gap-4 px-3 py-3 hover:bg-gray-700/30 rounded-lg cursor-pointer transition">
+                        <Home className="w-5 h-5" />
+                        <span className="text-base">Home</span>
                     </div>
-                </div>
+                </Link>
 
-                {/* Menü Butonları */}
-                <div className="space-y-4">
-                    {menuItems.map((item) => (
-                        <button
-                            key={item.label}
-                            onClick={() => router.push(item.path)}
-                            className="flex items-center gap-3 w-full hover:bg-[#1f2937] py-2 px-3 rounded transition"
-                        >
-                            {item.icon}
-                            {item.label}
-                        </button>
-                    ))}
-                </div>
-            </div>
+                <Link href="/messages">
+                    <div className="flex items-center gap-4 px-3 py-3 hover:bg-gray-700/30 rounded-lg cursor-pointer transition">
+                        <MessageCircle className="w-5 h-5" />
+                        <span className="text-base">Messages</span>
+                    </div>
+                </Link>
 
-            {/* Alt: Post ve Logout */}
-            <div className="mt-10">
+                <Link href="/groups">
+                    <div className="flex items-center gap-4 px-3 py-3 hover:bg-gray-700/30 rounded-lg cursor-pointer transition">
+                        <Users className="w-5 h-5" />
+                        <span className="text-base">Groups</span>
+                    </div>
+                </Link>
+
+                <Link href={`/profile/${user?.uid}`}>
+                    <div className="flex items-center gap-4 px-3 py-3 hover:bg-gray-700/30 rounded-lg cursor-pointer transition">
+                        <User className="w-5 h-5" />
+                        <span className="text-base">Profile</span>
+                    </div>
+                </Link>
+
+                <Link href="/settings">
+                    <div className="flex items-center gap-4 px-3 py-3 hover:bg-gray-700/30 rounded-lg cursor-pointer transition">
+                        <Settings className="w-5 h-5" />
+                        <span className="text-base">Settings</span>
+                    </div>
+                </Link>
+
+                {/* Post Butonu */}
                 <button
-                    onClick={() => router.push("/post")}
-                    className="bg-white text-[#0A1231] font-bold py-2 w-full rounded-full hover:bg-gray-200 transition mb-4"
+                    onClick={() => setShowPostModal(true)}
+                    className="w-full bg-white text-[#0A1231] font-bold rounded-full py-2 mt-4 hover:bg-gray-100 transition"
                 >
+                    <Pencil size={16} className="inline mr-2" />
                     Post
                 </button>
-                <button
-                    onClick={handleLogout}
-                    className="text-red-400 text-sm hover:underline w-full text-left"
-                >
-                    Çıkış Yap
-                </button>
             </div>
+
+            {/* Alt Kısım: Kullanıcı Bilgisi + Çıkış */}
+            {user && (
+                <div className="mt-6">
+                    <div className="flex items-center justify-between px-2 py-2 hover:bg-gray-700/30 rounded-lg transition">
+                        <div className="flex items-center gap-3">
+                            <img
+                                src={user.photoURL || "https://i.ibb.co/wh9SNVZY/user.png"}
+                                alt="profile"
+                                className="w-9 h-9 rounded-full"
+                            />
+                            <div>
+                                <p className="font-bold text-sm">
+                                    {user.displayName || user.email?.split("@")[0]}
+                                </p>
+                                <p className="text-sm text-gray-400">
+                                    @{user.email?.split("@")[0]}
+                                </p>
+                            </div>
+                        </div>
+                        <MoreHorizontal className="w-5 h-5 text-gray-400" />
+                    </div>
+
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-2 w-full justify-center mt-4 text-sm text-red-400 hover:text-red-200 transition"
+                    >
+                        <LogOut className="w-4 h-4" />
+                        Çıkış Yap
+                    </button>
+                </div>
+            )}
+
+            {showPostModal && (
+                <PostModal onClose={() => setShowPostModal(false)} />
+            )}
         </div>
     );
-
 }
