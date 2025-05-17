@@ -1,7 +1,7 @@
 'use client';
 
 import Link from "next/link";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import {
     Home,
     MessageCircle,
@@ -11,6 +11,7 @@ import {
     Pencil,
     MoreHorizontal,
     LogOut,
+    Bookmark,
 } from "lucide-react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../../lib/firebase";
@@ -18,6 +19,7 @@ import { signOut } from "firebase/auth";
 import LoadingSpinner from "./LoadingSpinner";
 import { useState } from "react";
 import PostModal from "./PostModal";
+import Cookies from "js-cookie";
 
 export default function Sidebar() {
     const [user, loading] = useAuthState(auth);
@@ -25,8 +27,16 @@ export default function Sidebar() {
     const [showPostModal, setShowPostModal] = useState(false);
 
     const handleLogout = async () => {
-        await signOut(auth);
-        router.push("/login");
+        try {
+            // Remove auth token first
+            Cookies.remove('auth-token');
+            // Then sign out
+            await signOut(auth);
+            // Finally redirect
+            router.push("/login");
+        } catch (error) {
+            console.error("Logout error:", error);
+        }
     };
 
     if (loading) {
@@ -57,10 +67,10 @@ export default function Sidebar() {
                     </div>
                 </Link>
 
-                <Link href="/groups">
+                <Link href="/saved">
                     <div className="flex items-center gap-4 px-3 py-3 hover:bg-gray-700/30 rounded-lg cursor-pointer transition">
-                        <Users className="w-5 h-5" />
-                        <span className="text-base">Groups</span>
+                        <Bookmark className="w-5 h-5" />
+                        <span className="text-base">Kaydedilenler</span>
                     </div>
                 </Link>
 
@@ -93,11 +103,14 @@ export default function Sidebar() {
                 <div className="mt-6">
                     <div className="flex items-center justify-between px-2 py-2 hover:bg-gray-700/30 rounded-lg transition">
                         <div className="flex items-center gap-3">
-                            <img
-                                src={user.photoURL || "https://i.ibb.co/wh9SNVZY/user.png"}
-                                alt="profile"
-                                className="w-9 h-9 rounded-full"
-                            />
+                            <div className="relative">
+                                <img
+                                    src={user.photoURL || "https://i.ibb.co/wh9SNVZY/user.png"}
+                                    alt="profile"
+                                    className="w-9 h-9 rounded-full object-cover border-2 border-white"
+                                />
+                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0A1231]"></div>
+                            </div>
                             <div>
                                 <p className="font-bold text-sm">
                                     {user.displayName || user.email?.split("@")[0]}

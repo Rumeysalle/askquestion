@@ -1,25 +1,20 @@
-
-
-import { getAnalytics } from "firebase/analytics";
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyDLKJi6oFw7R9W1FUGalNKH5-Yljcpew68",
-    authDomain: "askquestion-636dd.firebaseapp.com",
-    projectId: "askquestion-636dd",
-    storageBucket: "askquestion-636dd.firebasestorage.app",
-    messagingSenderId: "864230489603",
-    appId: "1:864230489603:web:3a42a0961b5883a5c15836",
-    measurementId: "G-CYT3P3XQPT"
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Firebase tekrar başlatılmasın diye kontrol ediyoruz
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-
-// Firebase servislerini dışa aktar
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
-export { auth, db };
+export { auth, db, storage };

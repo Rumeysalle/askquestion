@@ -1,46 +1,63 @@
-import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../../lib/firebase";
+import { useState, useEffect } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
+import { User } from '../types/post';
 
-export default function UserHoverCard({ userId }: { userId?: string }) {
-    const [userData, setUserData] = useState<any>(null);
+interface UserHoverCardProps {
+    userId: string;
+    children: React.ReactNode;
+}
+
+export default function UserHoverCard({ userId, children }: UserHoverCardProps) {
+    const [user, setUser] = useState<User | null>(null);
+    const [showCard, setShowCard] = useState(false);
 
     useEffect(() => {
-        if (!userId) return;
-
         const fetchUser = async () => {
+            if (!userId) {
+                console.warn('UserHoverCard: userId is undefined');
+                return;
+            }
+
             try {
-                const docSnap = await getDoc(doc(db, "users", userId));
-                if (docSnap.exists()) {
-                    setUserData(docSnap.data());
+                const userDoc = await getDoc(doc(db, 'users', userId));
+                if (userDoc.exists()) {
+                    setUser({ id: userDoc.id, ...userDoc.data() } as User);
+                } else {
+                    console.warn(`UserHoverCard: No user found with id ${userId}`);
                 }
             } catch (error) {
-                console.error("Kullanıcı verisi alınamadı:", error);
+                console.error('Error fetching user:', error);
             }
         };
-
         fetchUser();
     }, [userId]);
 
-    if (!userData) return null;
+    if (!userId) {
+        return <>{children}</>;
+    }
 
     return (
-        <div className="absolute z-50 bg-white shadow-lg rounded-xl p-4 text-black w-72 border border-gray-300">
-            <div className="flex items-center gap-3">
-                <img
-                    src={userData.photoURL}
-                    width={50}
-                    height={50}
-                    className="rounded-full"
-                    alt="avatar"
-                />
-                <div>
-                    <p className="font-bold">{userData.username}</p>
-                    <p className="text-sm text-gray-600">{userData.email}</p>
+        <div
+            className="relative inline-block"
+            onMouseEnter={() => setShowCard(true)}
+            onMouseLeave={() => setShowCard(false)}
+        >
+            {children}
+            {showCard && user && (
+                <div className="absolute z-50 top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg p-4">
+                    <div className="flex items-center gap-3">
+                        <img
+                            src={user.photoURL || 'https://i.ibb.co/wh9SNVZY/user.png'}
+                            alt={user.username}
+                            className="w-12 h-12 rounded-full object-cover"
+                        />
+                        <div>
+                            <h3 className="font-semibold">{user.username}</h3>
+                            <p className="text-sm text-gray-500">{user.email}</p>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            {userData.bio && (
-                <p className="text-sm mt-2">{userData.bio}</p>
             )}
         </div>
     );

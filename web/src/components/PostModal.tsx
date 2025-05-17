@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { addDoc, collection, doc, getDoc, serverTimestamp } from "firebase/firestore";
 import { db, auth } from "../../lib/firebase";
+import { Post } from "../types/post";
 
 export default function PostModal({ onClose }: { onClose: () => void }) {
     const [content, setContent] = useState("");
@@ -13,9 +14,9 @@ export default function PostModal({ onClose }: { onClose: () => void }) {
 
         try {
             const user = auth.currentUser;
-            if (!user) throw new Error("Kullanıcı yok");
+            if (!user) throw new Error("No user found");
 
-            let username = user.email?.split("@")[0] || "anonim";
+            let username = user.email?.split("@")[0] || "anonymous";
             let photoURL = "https://i.ibb.co/wh9SNVZY/user.png";
 
             const userDoc = await getDoc(doc(db, "users", user.uid));
@@ -25,23 +26,27 @@ export default function PostModal({ onClose }: { onClose: () => void }) {
                 photoURL = userData.photoURL || photoURL;
             }
 
-            await addDoc(collection(db, "posts"), {
+            const postData = {
                 content,
                 createdAt: serverTimestamp(),
+                senderId: user.uid,
+                senderName: username,
+                senderPhoto: photoURL,
                 like: {
                     count: 0,
                     users: [],
                 },
-                uid: user.uid,
-                email: user.email,
-                username,
-                photoURL,
-            });
+                comments: [],
+            };
+
+            console.log("Creating post with data:", postData);
+            const docRef = await addDoc(collection(db, "posts"), postData);
+            console.log("Post created with ID:", docRef.id);
 
             setContent("");
             onClose();
         } catch (error) {
-            console.error("Post gönderme hatası:", error);
+            console.error("Error creating post:", error);
         }
 
         setLoading(false);
@@ -56,32 +61,33 @@ export default function PostModal({ onClose }: { onClose: () => void }) {
                 >
                     ✖
                 </button>
-                <h2 className="text-xl font-bold mb-4">Yeni Post</h2>
+                <h2 className="text-xl font-bold mb-4">New Post</h2>
                 <form onSubmit={handleSubmit}>
                     <div className="flex gap-4">
-                        <img
-                            src={auth.currentUser?.photoURL || "https://i.ibb.co/wh9SNVZY/user.png"}
-                            alt="profile"
-                            className="w-9 h-9 rounded-full"
-                        />
-                        <div className="flex-1">
-                            <textarea
-                                value={content}
-                                onChange={(e) => setContent(e.target.value)}
-                                placeholder="Ne düşünüyorsun?"
-                                rows={4}
-                                className="w-full text-sm border border-gray-300 p-2 rounded-md resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        <div className="relative">
+                            <img
+                                src={auth.currentUser?.photoURL || "https://i.ibb.co/wh9SNVZY/user.png"}
+                                alt="profile"
+                                className="w-9 h-9 rounded-full object-cover border-2 border-gray-200"
                             />
-                            <div className="flex justify-end mt-2">
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="bg-[#0A1231] text-white text-sm font-bold py-1.5 px-5 rounded-full hover:bg-gray-800 transition disabled:opacity-50"
-                                >
-                                    {loading ? "Gönderiliyor..." : "Paylaş"}
-                                </button>
-                            </div>
+                            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white"></div>
                         </div>
+                        <textarea
+                            value={content}
+                            onChange={(e) => setContent(e.target.value)}
+                            placeholder="What's on your mind?"
+                            className="flex-1 border-none focus:ring-0 resize-none"
+                            rows={4}
+                        />
+                    </div>
+                    <div className="mt-4 flex justify-end">
+                        <button
+                            type="submit"
+                            disabled={!content.trim() || loading}
+                            className="bg-blue-500 text-white px-4 py-2 rounded-full hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {loading ? "Posting..." : "Post"}
+                        </button>
                     </div>
                 </form>
             </div>

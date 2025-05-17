@@ -1,4 +1,6 @@
-import { useState } from "react";
+
+import { useEffect, useState } from "react";
+import { useAuthState } from "react-firebase-hooks/auth";
 import { auth, db } from "../../lib/firebase";
 import {
     doc,
@@ -6,127 +8,130 @@ import {
     arrayUnion,
     arrayRemove,
     increment,
+    collection,
+    query as firestoreQuery,
+    where,
+    orderBy,
+    getDocs,
+    getDoc,
+    serverTimestamp,
 } from "firebase/firestore";
 import CommentModal from "./CommentModal";
-import {
-    MessageCircle,
-    Heart,
-    Bookmark,
-    BookmarkCheck,
-    Share2,
-} from "lucide-react";
-import UserHoverCard from "./UserHoverCard";
-import Link from "next/link";
+import PostHeader from "./PostHeader";
+import PostContent from "./PostContent";
+import PostActions from "./PostAction";
+import ShareMenu from "./ShareMenu";
+import CommentTrigger from "./CommentTrigger";
+import { Post, User } from "../types/post";
 
-export default function PostItem({ post }: { post: any }) {
-    const user = auth.currentUser;
-    const userId = user?.uid;
+interface PostItemProps {
+    post: Post;
+    onShare?: () => void;
+}
+
+export default function PostItem({ post, onShare }: PostItemProps) {
+    if (!post || !post.senderId || !post.senderName) {
+        console.warn("Eksik post verisi:", post);
+        return <></>;
+    }
+
+    const [user] = useAuthState(auth);
+    const userId = user?.uid || "";
     const hasLiked = post.like?.users?.includes(userId);
     const [showModal, setShowModal] = useState(false);
-    const [saved, setSaved] = useState(false);
-    const [hovered, setHovered] = useState(false);
+    const [showShareMenu, setShowShareMenu] = useState(false);
+    const [recentContacts, setRecentContacts] = useState<User[]>([]);
+    const [isSaved, setIsSaved] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [searchResults, setSearchResults] = useState<User[]>([]);
+    const [likesCount, setLikesCount] = useState<number>(post.like?.count || 0);
+    const [commentsCount, setCommentsCount] = useState(post.comments?.length || 0);
 
-    const handleLike = async () => {
-        if (!user) return;
-        const postRef = doc(db, "posts", post.id);
-        await updateDoc(postRef, {
-            "like.users": hasLiked ? arrayRemove(userId) : arrayUnion(userId),
-            "like.count": increment(hasLiked ? -1 : 1),
-        });
-    };
+    useEffect(() => {
+        const fetchRecentContacts = async () => {
+            if (!user) return;
+            try {
+                const messagesQuery = firestoreQuery(
+                    collection(db, "messages"),
+                    where("participants", "array-contains", user.uid),
+                    orderBy("lastMessageAt", "desc")
+                );
+                const messagesSnapshot = await getDocs(messagesQuery);
+                const contacts = new Set<string>();
+                messagesSnapshot.docs.forEach((doc) => {
+                    const data = doc.data();
+                    const otherUserId = data.participants.find((id: string) => id !== user.uid);
+                    if (otherUserId) contacts.add(otherUserId);
+                });
+                const userPromises = Array.from(contacts).map(async (contactId) => {
+                    const userDoc = await getDoc(doc(db, "users", contactId));
+                    return { id: contactId, ...userDoc.data() } as User;
+                });
+                const users = await Promise.all(userPromises);
+                setRecentContacts(users);
+            } catch (error) {
+                console.error("Error loading recent contacts:", error);
+            }
+        };
+        fetchRecentContacts();
+    }, [user]);
 
-    const handleSavePost = async () => {
-        if (!user) return;
-        try {
-            const userRef = doc(db, "users", user.uid);
-            await updateDoc(userRef, {
-                savedPosts: arrayUnion(post.id),
-            });
-            setSaved(true);
-            setTimeout(() => setSaved(false), 2000);
-        } catch (error) {
-            console.error("Post kaydedilemedi:", error);
-        }
-    };
+    useEffect(() => {
+        const checkIfSaved = async () => {
+            if (!user) return;
+            try {
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                const userData = userDoc.data();
+                const savedPosts = userData?.savedPosts || [];
+                setIsSaved(savedPosts.includes(post.id));
+            } catch (error) {
+                console.error("Error checking saved post:", error);
+            }
+        };
+        checkIfSaved();
+    }, [user, post.id]);
 
     return (
-        <div className="p-4 hover:bg-gray-50 transition-all duration-200 relative border-b border-gray-200">
-            <Link href={`/profile/${post.uid}`}>
-                <div
-                    className="flex items-center gap-2 mb-2 cursor-pointer"
-                    onMouseEnter={() => setHovered(true)}
-                    onMouseLeave={() => setHovered(false)}
-                >
-                    <img
-                        src={post.photoURL || "https://i.ibb.co/wh9SNVZY/user.png"}
-                        alt="profile"
-                        className="w-10 h-10 rounded-full"
-                    />
-                    <div>
-                        <p className="font-bold text-sm text-gray-900">
-                            {post.username || "Kullanıcı"}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                            @{post.email?.split("@")[0]}
-                        </p>
-                    </div>
-                </div>
-            </Link>
-
-            {hovered && (
-                <div className="absolute top-16 left-4 z-50">
-                    <UserHoverCard userId={post.uid} />
-                </div>
-            )}
-
-            <p className="text-gray-900 text-[15px] mb-2 leading-6">{post.content}</p>
-
-            <div className="flex items-center justify-between gap-4 text-sm text-gray-500 mt-3">
-                {/* Sol: Paylaş */}
-                <button className="hover:text-blue-500 transition flex items-center gap-1">
-                    <Share2 size={16} />
-                    <span>Paylaş</span>
-                </button>
-
-                {/* Ortada: Yorum */}
-                <button
-                    onClick={() => setShowModal(true)}
-                    className="hover:text-green-600 transition flex items-center gap-1"
-                >
-                    <MessageCircle size={16} />
-                    <span>Yorum</span>
-                </button>
-
-                {/* Beğeni */}
-                <button
-                    onClick={handleLike}
-                    className={`flex items-center gap-1 hover:text-red-600 transition`}
-                >
-                    <Heart
-                        size={16}
-                        className={`${hasLiked ? "text-red-600 fill-red-600" : "text-gray-500"
-                            }`}
-                    />
-                    <span>{post.like?.count || 0}</span>
-                </button>
-
-                {/* Kaydet */}
-                <button
-                    onClick={handleSavePost}
-                    className="hover:text-green-700 flex items-center gap-1 transition"
-                >
-                    {saved ? (
-                        <BookmarkCheck size={16} className="text-blue-600 fill-blue-600" />
-                    ) : (
-                        <Bookmark size={16} />
-                    )}
-                    <span>Kaydet</span>
-                </button>
+        <div className="bg-[#F5F5F5] text-gray-900 rounded-xl p-4 mb-4 shadow-sm border border-gray-300">
+            <div className="flex items-center gap-3 mb-2">
+                <img
+                    src={post.senderPhoto || "https://i.ibb.co/wh9SNVZY/user.png"}
+                    alt={post.senderName}
+                    className="w-10 h-10 rounded-full object-cover"
+                />
+                <PostHeader
+                    username={post.senderName}
+                    userId={post.senderId}
+                    createdAt={post.createdAt}
+                />
             </div>
-
-            {showModal && (
-                <CommentModal postId={post.id} onClose={() => setShowModal(false)} />
+            <PostContent content={post.content} />
+            <PostActions
+                hasLiked={hasLiked}
+                isSaved={isSaved}
+                likesCount={likesCount}
+                commentsCount={commentsCount}
+                onLike={() => { }}
+                onToggleComment={() => setShowModal(true)}
+                onSave={() => { }}
+                onShare={() => setShowShareMenu(true)}
+            />
+            {showShareMenu && (
+                <ShareMenu
+                    userId={userId}
+                    post={post}
+                    recentContacts={recentContacts}
+                    searchResults={searchResults}
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                    onClose={() => setShowShareMenu(false)}
+                />
             )}
+            <CommentTrigger
+                commentsCount={commentsCount}
+                onClick={() => setShowModal(true)}
+            />
+            {showModal && <CommentModal post={post} onClose={() => setShowModal(false)} />}
         </div>
     );
 }

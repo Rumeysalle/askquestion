@@ -52,7 +52,7 @@ export default function PostForm() {
                 <img
                     src={auth.currentUser?.photoURL || "https://i.ibb.co/wh9SNVZY/user.png"}
                     alt="profile"
-                    className="w-9 h-9 rounded-full"
+                    className="w-9 h-9 rounded-full object-cover"
                 />
                 <div className="flex-1">
                     <textarea

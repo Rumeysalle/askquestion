@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { auth, db } from "../../../lib/firebase";
+import { useAuth } from "@/hooks/useAuth";
 import {
     doc,
     getDoc,
@@ -12,8 +11,9 @@ import {
     orderBy,
     limit,
     updateDoc,
-    onSnapshot
+    onSnapshot,
 } from "firebase/firestore";
+import { db } from "../../../lib/firebase";
 import PostItem from "@/components/PostItem";
 import Sidebar from "@/components/Sidebar";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -21,7 +21,7 @@ import Link from "next/link";
 import { Search, Link as LinkIcon, MessageCircle, MoreHorizontal } from "lucide-react";
 
 export default function Profile() {
-    const [user] = useAuthState(auth);
+    const { user, userData, loading: authLoading } = useAuth();
     const router = useRouter();
     const { userId } = router.query;
     const [profileData, setProfileData] = useState<any>(null);
@@ -30,11 +30,31 @@ export default function Profile() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // E-posta adresine göre kullanıcı bulma fonksiyonu
+    const findUserByEmail = async (email: string) => {
+        try {
+            const usersQuery = query(collection(db, "users"), where("email", "==", email));
+            const querySnapshot = await getDocs(usersQuery);
+
+            if (!querySnapshot.empty) {
+                const userDoc = querySnapshot.docs[0];
+                return {
+                    id: userDoc.id,
+                    ...userDoc.data()
+                };
+            }
+            return null;
+        } catch (error) {
+            console.error("Kullanıcı bulunurken hata:", error);
+            return null;
+        }
+    };
+
     // Profil verilerini getir
     useEffect(() => {
         const fetchProfile = async () => {
-            if (!userId) {
-                setIsLoading(false);
+            if (!userId || authLoading) {
+                setIsLoading(true);
                 return;
             }
 
@@ -42,24 +62,36 @@ export default function Profile() {
                 setIsLoading(true);
                 setError(null);
 
-                const userRef = doc(db, "users", userId as string);
-                const userSnap = await getDoc(userRef);
-
-                if (userSnap.exists()) {
-                    const data = userSnap.data();
-                    if (!data.username || !data.name) {
-                        const emailUsername = data.email?.split("@")[0] || "user";
-                        await updateDoc(userRef, {
-                            username: emailUsername,
-                            name: emailUsername
-                        });
-                        setProfileData({ ...data, username: emailUsername, name: emailUsername });
+                // E-posta adresi olarak gelen userId'yi kontrol et
+                if (userId.includes('@')) {
+                    const userData = await findUserByEmail(userId as string);
+                    if (userData) {
+                        setProfileData(userData);
                     } else {
-                        setProfileData(data);
+                        setProfileData(null);
+                        setError("Profil bulunamadı");
                     }
                 } else {
-                    setProfileData(null);
-                    setError("Profil bulunamadı");
+                    // Normal userId ile profil getirme
+                    const userRef = doc(db, "users", userId as string);
+                    const userSnap = await getDoc(userRef);
+
+                    if (userSnap.exists()) {
+                        const data = userSnap.data();
+                        if (!data.username || !data.name) {
+                            const emailUsername = data.email?.split("@")[0] || "user";
+                            await updateDoc(userRef, {
+                                username: emailUsername,
+                                name: emailUsername
+                            });
+                            setProfileData({ ...data, username: emailUsername, name: emailUsername });
+                        } else {
+                            setProfileData(data);
+                        }
+                    } else {
+                        setProfileData(null);
+                        setError("Profil bulunamadı");
+                    }
                 }
             } catch (error) {
                 console.error("Profil yüklenirken hata:", error);
@@ -71,7 +103,7 @@ export default function Profile() {
         };
 
         fetchProfile();
-    }, [userId]);
+    }, [userId, authLoading]);
 
     // Gönderileri gerçek zamanlı takip et
     useEffect(() => {
@@ -80,7 +112,8 @@ export default function Profile() {
         try {
             const postsQuery = query(
                 collection(db, "posts"),
-                where("uid", "==", userId)
+                where("uid", "==", userId),
+                orderBy("createdAt", "desc")
             );
 
             const unsubscribe = onSnapshot(postsQuery,
@@ -121,7 +154,7 @@ export default function Profile() {
         fetchSuggestedUsers();
     }, []);
 
-    if (isLoading) {
+    if (authLoading || isLoading) {
         return (
             <div className="flex min-h-screen bg-white">
                 <div className="w-[20%] border-r border-gray-200 h-screen overflow-y-auto">
@@ -180,7 +213,7 @@ export default function Profile() {
                         <img
                             src={profileData.photoURL || "https://i.ibb.co/wh9SNVZY/user.png"}
                             alt="avatar"
-                            className="w-32 h-32 rounded-full border-4 border-white"
+                            className="w-32 h-32 rounded-full border-4 border-white object-cover"
                         />
                     </div>
                     {/* Action Buttons */}
@@ -276,7 +309,7 @@ export default function Profile() {
                                             <img
                                                 src={user.photoURL || "https://i.ibb.co/wh9SNVZY/user.png"}
                                                 alt="profile"
-                                                className="w-10 h-10 rounded-full"
+                                                className="w-10 h-10 rounded-full object-cover"
                                             />
                                             <div>
                                                 <p className="font-bold text-sm">{user.name || user.email?.split("@")[0]}</p>
